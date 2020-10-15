@@ -1,0 +1,14 @@
+{
+	"plugins": {
+		"/test01/": {
+			"type": "cgi",
+			"executable": "bin/plugin-example-cgi-echojson.linux.amd64",
+			"log": true
+		},
+		"/test02": {
+			"executable": "bash",
+			"arguments": [ "-c", "echo '{ \"ext\": \"{{extension}}\", \"path\": \"{{path}}\", \"query\": \"{{query}}\" }'"],
+			"content-type": "application/json"
+		}
+	}
+}
