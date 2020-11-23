@@ -29,10 +29,16 @@ type Proxy struct {
 func proxyRequest(proxy *Proxy, w http.ResponseWriter, req *http.Request) {
 	method := req.Method
 
-	targetURL := strings.Replace(req.URL.Path, proxy.URLFrom, proxy.URLTo, 1)
+	// If req.URL.Path contains escaped characters they will be replaced and we get the wrong path
+	// In that case req.URL.RawPath will be filled. See https://golang.org/pkg/net/url/#URL for details
+	path := req.URL.Path
+	if req.URL.RawPath != "" {
+		path = req.URL.RawPath
+	}
+
+	targetURL := strings.Replace(path, proxy.URLFrom, proxy.URLTo, 1)
 
 	target, err := url.Parse(targetURL)
-	// target, err := url.Parse(config.serverHost)
 	if err != nil {
 		log.Println(err.Error())
 		os.Exit(1)
@@ -46,7 +52,7 @@ func proxyRequest(proxy *Proxy, w http.ResponseWriter, req *http.Request) {
 	}
 
 	// Make sure forced parameters are added
-	query := newReq.URL.Query()
+	query := req.URL.Query()
 	for key, value := range proxy.Parameters {
 		query.Set(key, value)
 	}
@@ -68,14 +74,6 @@ func proxyRequest(proxy *Proxy, w http.ResponseWriter, req *http.Request) {
 
 	for key, values := range req.Header {
 		lowKey := strings.ToLower(key)
-
-		// TODO: Write the following more elegantly... :/
-		if req.Method != http.MethodPost && lowKey == "x-csrf-token" {
-			continue
-		}
-		if strings.Index(lowKey, "sec-") == 0 {
-			continue
-		}
 
 		// Make sure caching is disabled
 		if lowKey == "if-none-match" {
@@ -99,12 +97,13 @@ func proxyRequest(proxy *Proxy, w http.ResponseWriter, req *http.Request) {
 
 	// Replace security specific cookie parts
 	cookies := req.Cookies()
-	newReq.Header.Del("Set-Cookie") // TODO: Needed?
 
 	cookieNames := make([]string, 0)
 	for _, cookie := range cookies {
 		cookie.Secure = false
 		cookie.Domain = ""
+		cookie.SameSite = http.SameSiteLaxMode
+
 		newReq.AddCookie(cookie)
 		cookieNames = append(cookieNames, cookie.Name)
 	}
@@ -123,6 +122,10 @@ func proxyRequest(proxy *Proxy, w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte("Proxy Error: " + err.Error()))
 		return
 	}
+
+	// if resp.StatusCode >= 400 {
+	// 	log.Printf("HTTP Err: %s:\n %#v\n\n", newReq.URL.String(), resp.Header)
+	// }
 
 	for name, values := range resp.Header {
 		for _, value := range values {

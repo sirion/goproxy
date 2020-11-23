@@ -4,7 +4,7 @@ package main
 const AppName = "gogroxy"
 
 // AppVersion is the version of the program as exposed to the CGI plugins and shown on the console
-const AppVersion = "0.2"
+const AppVersion = "0.3"
 
 // AppDescription is the text shown in the help output
 const AppDescription = `

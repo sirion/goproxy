@@ -3,7 +3,7 @@
 wd=$(dirname "$0")
 
 if [[ ! -f "$wd/build.sh" ]]; then
-	echo "Build script must be executed in miproxy project directory."
+	echo "Build script must be executed in goproxy project directory."
 	return 1
 fi
 
